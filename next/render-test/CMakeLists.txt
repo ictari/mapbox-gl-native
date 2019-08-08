@@ -32,6 +32,11 @@ target_include_directories(
     PUBLIC ${MBGL_ROOT}/render-test/include ${MBGL_ROOT}/include
 )
 
+target_include_directories(
+    mbgl-render-test
+    PUBLIC ${MBGL_ROOT}/render-test/include ${MBGL_ROOT}/include
+)
+
 include(${PROJECT_SOURCE_DIR}/vendor/boost.cmake)
 
 target_link_libraries(
