@@ -1,5 +1,5 @@
 add_library(
-    mbgl-render-test SHARED EXCLUDE_FROM_ALL
+    mbgl-render-test STATIC EXCLUDE_FROM_ALL
     ${MBGL_ROOT}/render-test/src/mbgl/render_test_runner.cpp
     ${MBGL_ROOT}/render-test/src/test-runner/allocation_index.cpp
     ${MBGL_ROOT}/render-test/src/test-runner/allocation_index.hpp
@@ -44,6 +44,9 @@ target_link_libraries(
         mbgl-core
         mbgl-vendor-boost
 )
+if(CMAKE_SYSTEM_NAME STREQUAL Android)
+    set_target_properties(mbgl-render-test PROPERTIES LINK_FLAGS_RELEASE "-fuse-ld=gold -O2 -flto -Wl,--icf=safe")
+endif()
 
 set_property(TARGET mbgl-render-test PROPERTY FOLDER Core)
 
