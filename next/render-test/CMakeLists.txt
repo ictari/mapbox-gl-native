@@ -1,14 +1,16 @@
-add_executable(
-    mbgl-render-test
-    ${MBGL_ROOT}/render-test/allocation_index.cpp
-    ${MBGL_ROOT}/render-test/allocation_index.hpp
-    ${MBGL_ROOT}/render-test/filesystem.hpp
-    ${MBGL_ROOT}/render-test/main.cpp
-    ${MBGL_ROOT}/render-test/metadata.hpp
-    ${MBGL_ROOT}/render-test/parser.cpp
-    ${MBGL_ROOT}/render-test/parser.hpp
-    ${MBGL_ROOT}/render-test/runner.cpp
-    ${MBGL_ROOT}/render-test/runner.hpp
+add_library(
+    mbgl-render-test SHARED EXCLUDE_FROM_ALL
+    ${MBGL_ROOT}/render-test/src/mbgl/render_test_runner.cpp
+    ${MBGL_ROOT}/render-test/src/test-runner/allocation_index.cpp
+    ${MBGL_ROOT}/render-test/src/test-runner/allocation_index.hpp
+    ${MBGL_ROOT}/render-test/src/test-runner/filesystem.hpp
+    ${MBGL_ROOT}/render-test/src/test-runner/metadata.hpp
+    ${MBGL_ROOT}/render-test/src/test-runner/parser.cpp
+    ${MBGL_ROOT}/render-test/src/test-runner/parser.hpp
+    ${MBGL_ROOT}/render-test/src/test-runner/runner.cpp
+    ${MBGL_ROOT}/render-test/src/test-runner/runner.hpp
+    ${MBGL_ROOT}/render-test/src/test-runner/test_runner.hpp
+    ${MBGL_ROOT}/render-test/src/test-runner/test_runner.cpp
 )
 
 target_compile_definitions(
@@ -19,7 +21,16 @@ target_compile_definitions(
 # FIXME: Should not use core private interface
 target_include_directories(
     mbgl-render-test
-    PRIVATE ${MBGL_ROOT}/src
+    PRIVATE 
+        ${MBGL_ROOT}/src 
+        ${MBGL_ROOT}/platform/default/include
+        ${MBGL_ROOT}/platform/gfx/gl/src
+        ${MBGL_ROOT}/render-test/src
+)
+
+target_include_directories(
+    mbgl-render-test
+    PUBLIC ${MBGL_ROOT}/render-test/include ${MBGL_ROOT}/include
 )
 
 include(${PROJECT_SOURCE_DIR}/vendor/boost.cmake)
@@ -34,20 +45,20 @@ target_link_libraries(
         mbgl-vendor-boost
 )
 
-set_property(TARGET mbgl-render-test PROPERTY FOLDER Executables)
+set_property(TARGET mbgl-render-test PROPERTY FOLDER Core)
 
 string(RANDOM LENGTH 5 ALPHABET 0123456789 MBGL_RENDER_TEST_SEED)
 
-add_test(
-    NAME mbgl-render-test
-    COMMAND
-        mbgl-render-test
-        render-tests
-        --recycle-map
-        --shuffle
-        --seed
-        ${MBGL_RENDER_TEST_SEED}
-    WORKING_DIRECTORY ${MBGL_ROOT}
-)
+# add_test(
+#     NAME mbgl-render-test
+#     COMMAND
+#         mbgl-render-test
+#         render-tests
+#         --recycle-map
+#         --shuffle
+#         --seed
+#         ${MBGL_RENDER_TEST_SEED}
+#     WORKING_DIRECTORY ${MBGL_ROOT}
+# )
 
-add_test(NAME mbgl-query-test COMMAND mbgl-render-test query-tests WORKING_DIRECTORY ${MBGL_ROOT})
+# add_test(NAME mbgl-query-test COMMAND mbgl-render-test query-tests WORKING_DIRECTORY ${MBGL_ROOT})
