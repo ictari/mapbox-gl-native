@@ -112,7 +112,8 @@ mbgl::optional<std::string> getVendorPath(const std::string& url, const std::reg
 }
 
 mbgl::optional<std::string> getIntegrationPath(const std::string& url, const std::string& parent, const std::regex& regex, bool glyphsPath = false) {
-    static const mbgl::filesystem::path integrationPath(std::string("/sdcard/render-test") + "/mapbox-gl-js/test/integration/");
+    static const mbgl::filesystem::path integrationPath(std::string("/sdcard/render-test") +
+                                                        "/mapbox-gl-js/test/integration/");
 
     mbgl::filesystem::path file = std::regex_replace(url, regex, integrationPath.string() + parent);
     if (mbgl::filesystem::exists(file.parent_path())) {
@@ -703,7 +704,7 @@ std::string createResultItem(const TestMetadata& metadata, bool hasFailedTests) 
             html.append(" src=\"data:image/png;base64," + encodeBase64(metadata.actual) + "\">\n");
         }
     } else {
-//        assert(!metadata.errorMessage.empty());
+        //        assert(!metadata.errorMessage.empty());
         html.append("<p style=\"color: red\"><strong>Error:</strong> " + metadata.errorMessage + "</p>\n");
     }
     if (metadata.difference != 0.0) {
