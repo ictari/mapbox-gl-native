@@ -83,10 +83,6 @@ target_sources(
         ${MBGL_ROOT}/platform/android/src/gson/json_primitive.cpp
         ${MBGL_ROOT}/platform/android/src/gson/json_primitive.hpp
         ${MBGL_ROOT}/platform/android/src/http_file_source.cpp
-        ${MBGL_ROOT}/platform/android/src/i18n/collator.cpp
-        ${MBGL_ROOT}/platform/android/src/i18n/collator_jni.hpp
-        ${MBGL_ROOT}/platform/android/src/i18n/number_format.cpp
-        ${MBGL_ROOT}/platform/android/src/i18n/number_format_jni.hpp
         ${MBGL_ROOT}/platform/android/src/image.cpp
         ${MBGL_ROOT}/platform/android/src/java/util.cpp
         ${MBGL_ROOT}/platform/android/src/java/util.hpp
@@ -190,12 +186,10 @@ target_sources(
         ${MBGL_ROOT}/platform/android/src/style/value.hpp
         ${MBGL_ROOT}/platform/android/src/thread.cpp
         ${MBGL_ROOT}/platform/android/src/timer.cpp
-        ${MBGL_ROOT}/platform/default/src/mbgl/text/local_glyph_rasterizer.cpp
         ${MBGL_ROOT}/platform/default/src/mbgl/gfx/headless_backend.cpp
         ${MBGL_ROOT}/platform/default/src/mbgl/gfx/headless_frontend.cpp
         ${MBGL_ROOT}/platform/default/src/mbgl/gl/headless_backend.cpp
         ${MBGL_ROOT}/platform/default/src/mbgl/map/map_snapshotter.cpp
-        ${MBGL_ROOT}/platform/default/src/mbgl/storage/file_source.cpp
         ${MBGL_ROOT}/platform/default/src/mbgl/storage/asset_file_source.cpp
         ${MBGL_ROOT}/platform/default/src/mbgl/storage/default_file_source.cpp
         ${MBGL_ROOT}/platform/default/src/mbgl/storage/file_source_request.cpp
@@ -212,6 +206,11 @@ target_sources(
         ${MBGL_ROOT}/platform/default/src/mbgl/util/thread_local.cpp
         ${MBGL_ROOT}/platform/default/src/mbgl/util/utf.cpp
         ${MBGL_ROOT}/platform/linux/src/headless_backend_egl.cpp
+        # These files are added temporarily for enabling running mbgl-render-test-runner on android
+        ${MBGL_ROOT}/render-test/render_test_collator.cpp
+        ${MBGL_ROOT}/render-test/render_test_number_format.cpp
+        ${MBGL_ROOT}/platform/default/src/mbgl/text/local_glyph_rasterizer.cpp
+        ${MBGL_ROOT}/platform/default/src/mbgl/storage/file_source.cpp
 )
 
 target_include_directories(
@@ -239,6 +238,8 @@ target_link_libraries(
 
 add_library(
     mapbox-gl SHARED
+    ${MBGL_ROOT}/platform/android/src/main.cpp
+    # These files are added temporarily for enabling running mbgl-render-test-runner on android
     ${MBGL_ROOT}/platform/android/src/logger.cpp
     ${MBGL_ROOT}/platform/android/src/logger.hpp
     ${MBGL_ROOT}/platform/android/src/logging_android.cpp
@@ -246,7 +247,10 @@ add_library(
     ${MBGL_ROOT}/platform/android/src/text/local_glyph_rasterizer_jni.hpp
     ${MBGL_ROOT}/platform/android/src/file_source.cpp
     ${MBGL_ROOT}/platform/android/src/file_source.hpp
-    ${MBGL_ROOT}/platform/android/src/main.cpp
+    ${MBGL_ROOT}/platform/android/src/i18n/collator.cpp
+    ${MBGL_ROOT}/platform/android/src/i18n/collator_jni.hpp
+    ${MBGL_ROOT}/platform/android/src/i18n/number_format.cpp
+    ${MBGL_ROOT}/platform/android/src/i18n/number_format_jni.hpp
 )
 
 target_link_libraries(
