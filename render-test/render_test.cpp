@@ -8,7 +8,10 @@
 #include "parser.hpp"
 #include "runner.hpp"
 
+#include <mbgl/util/logging.hpp>
+
 #include <random>
+#include <sstream>
 
 #define ANSI_COLOR_RED        "\x1b[31m"
 #define ANSI_COLOR_GREEN      "\x1b[32m"
@@ -120,16 +123,25 @@ int runRenderTests(int argc, char** argv) {
                 color = "green";
                 stats.passedTests++;
                 printf(ANSI_COLOR_GREEN "* passed %s" ANSI_COLOR_RESET "\n", id.c_str());
+                std::stringstream ss;
+                ss << " passed: " << id.c_str() << ".";
+                mbgl::Log::Warning(mbgl::Event::General, ss.str());
             } else if (errored) {
                 status = "errored";
                 color = "red";
                 stats.erroredTests++;
                 printf(ANSI_COLOR_RED "* errored %s" ANSI_COLOR_RESET "\n", id.c_str());
+                std::stringstream ss;
+                ss << " errored: " << id.c_str() << ".";
+                mbgl::Log::Warning(mbgl::Event::General, ss.str());
             } else {
                 status = "failed";
                 color = "red";
                 stats.failedTests++;
                 printf(ANSI_COLOR_RED "* failed %s" ANSI_COLOR_RESET "\n", id.c_str());
+                std::stringstream ss;
+                ss << " failed: " << id.c_str() << ".";
+                mbgl::Log::Warning(mbgl::Event::General, ss.str());
             }
         }
 
@@ -145,6 +157,9 @@ int runRenderTests(int argc, char** argv) {
 
     if (stats.passedTests) {
         printf(ANSI_COLOR_GREEN "%u passed (%.1lf%%)" ANSI_COLOR_RESET "\n", stats.passedTests, 100.0 * stats.passedTests / count);
+        std::stringstream ss;
+        ss << " passed tests: " << stats.passedTests << ", percentage: " << (100.0 * stats.passedTests / count);
+        mbgl::Log::Warning(mbgl::Event::General, ss.str());
     }
     if (stats.ignorePassedTests) {
         printf(ANSI_COLOR_YELLOW "%u passed but were ignored (%.1lf%%)" ANSI_COLOR_RESET "\n", stats.ignorePassedTests, 100.0 * stats.ignorePassedTests / count);
