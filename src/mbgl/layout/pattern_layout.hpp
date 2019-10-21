@@ -31,8 +31,7 @@ public:
 template <class BucketType,
           class LayerPropertiesType,
           class PatternPropertyType,
-          class UnevaluatedLayoutPropertiesType = typename style::Properties<>::Unevaluated,
-          class PossiblyEvaluatedLayoutPropertiesType = typename style::Properties<>::PossiblyEvaluated>
+          class LayoutPropertiesType = typename style::Properties<>>
 class PatternLayout : public Layout {
 public:
     PatternLayout(const BucketParameters& parameters,
@@ -146,8 +145,8 @@ private:
 
     const std::unique_ptr<GeometryTileLayer> sourceLayer;
     std::vector<PatternFeature> features;
-    UnevaluatedLayoutPropertiesType unevaluatedLayout;
-    PossiblyEvaluatedLayoutPropertiesType layout;
+    typename LayoutPropertiesType::Unevaluated unevaluatedLayout;
+    typename LayoutPropertiesType::PossiblyEvaluated layout;
 
     const float zoom;
     const uint32_t overscaling;
