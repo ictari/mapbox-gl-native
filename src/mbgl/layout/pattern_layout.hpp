@@ -104,7 +104,7 @@ public:
     ~PatternLayout() final = default;
 
     template <class SortKeyPropertyType>
-    void maybeApplySortKey() {
+    void maybeApplySortKey() noexcept {
         bool sortFeaturesByKey = !unevaluatedLayout.template get<SortKeyPropertyType>().isUndefined();
         if (sortFeaturesByKey) {
             for (auto& feature : features) {
