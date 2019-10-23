@@ -30,11 +30,11 @@ std::unique_ptr<Layout> LineLayerFactory::createLayout(const LayoutParameters& p
     using namespace style;
 
     using LayoutType = PatternLayout<LineBucket, LineLayerProperties, LinePattern, LineLayoutProperties>;
-    auto layout = std::make_unique<LayoutType>(parameters.bucketParameters, group, std::move(layer), parameters.imageDependencies);
+    auto&& layout = std::make_unique<LayoutType>(parameters.bucketParameters, group, std::move(layer), parameters.imageDependencies);
 
     layout->template maybeApplySortKey<LineSortKey>();
 
-    return layout;
+    return std::move(layout);
 }
 
 std::unique_ptr<RenderLayer> LineLayerFactory::createRenderLayer(Immutable<style::Layer::Impl> impl) noexcept {

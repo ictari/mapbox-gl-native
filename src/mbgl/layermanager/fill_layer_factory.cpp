@@ -31,11 +31,11 @@ FillLayerFactory::createLayout(const LayoutParameters& parameters,
     using namespace style;
 
     using LayoutType = PatternLayout<FillBucket, FillLayerProperties, FillPattern, FillLayoutProperties>;
-    auto layout = std::make_unique<LayoutType>(parameters.bucketParameters, group, std::move(layer), parameters.imageDependencies);
+    auto&& layout = std::make_unique<LayoutType>(parameters.bucketParameters, group, std::move(layer), parameters.imageDependencies);
 
     layout->template maybeApplySortKey<FillSortKey>();
 
-    return layout;
+    return std::move(layout);
 }
 
 std::unique_ptr<RenderLayer> FillLayerFactory::createRenderLayer(Immutable<style::Layer::Impl> impl) noexcept {
