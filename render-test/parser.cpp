@@ -273,7 +273,8 @@ ArgumentsTuple parseArguments(int argc, char** argv) {
     args::Flag recycleMapFlag(argumentParser, "recycle map", "Toggle reusing the map object", {'r', "recycle-map"});
     args::Flag shuffleFlag(argumentParser, "shuffle", "Toggle shuffling the tests order", {'s', "shuffle"});
     args::ValueFlag<uint32_t> seedValue(argumentParser, "seed", "Shuffle seed (default: random)", {"seed"});
-    args::ValueFlag<std::string> testPathValue(argumentParser, "rootPath", "Test root rootPath", {'p', "rootPath"});
+    args::ValueFlag<std::string> testPathValue(
+        argumentParser, "manifestPath", "Test manifest file path", {'p', "manifestPath"});
     args::ValueFlag<std::string> testFilterValue(argumentParser, "filter", "Test filter regex", {'f', "filter"});
     args::PositionalList<std::string> testNameValues(argumentParser, "URL", "Test name(s)");
 
@@ -301,11 +302,11 @@ ArgumentsTuple parseArguments(int argc, char** argv) {
         exit(3);
     }
 
-    const auto testRootPath = testPathValue ? args::get(testPathValue) : std::string{TEST_RUNNER_ROOT_PATH};
-    mbgl::filesystem::path rootPath{testRootPath};
-    if (!mbgl::filesystem::exists(rootPath)) {
-        mbgl::Log::Error(
-            mbgl::Event::General, "Provided test rootPath '%s' does not exist.", rootPath.string().c_str());
+    mbgl::filesystem::path manifestPath{testPathValue ? args::get(testPathValue) : std::string{TEST_RUNNER_ROOT_PATH}};
+    if (!mbgl::filesystem::exists(manifestPath) || !manifestPath.has_filename()) {
+        mbgl::Log::Error(mbgl::Event::General,
+                         "Provided test manifest file path '%s' does not exist.",
+                         manifestPath.string().c_str());
         exit(4);
     }
 
@@ -313,16 +314,11 @@ ArgumentsTuple parseArguments(int argc, char** argv) {
     const auto testFilter = testFilterValue ? args::get(testFilterValue) : std::string{};
     const auto shuffle = shuffleFlag ? args::get(shuffleFlag) : false;
     const auto seed = seedValue ? args::get(seedValue) : 1u;
-    auto manifestData = ManifestParser::parseManifest(testRootPath, testNames, testFilter);
+    auto manifestData = ManifestParser::parseManifest(manifestPath.string(), testNames, testFilter);
     if (!manifestData) {
         exit(5);
     }
-    if (shuffle) {
-        manifestData->doShuffle(seed);
-    }
-
-    return ArgumentsTuple{
-        recycleMapFlag ? args::get(recycleMapFlag) : false, shuffle, seed, testRootPath, std::move(manifestData)};
+    return ArgumentsTuple{recycleMapFlag ? args::get(recycleMapFlag) : false, shuffle, seed, std::move(manifestData)};
 }
 
 TestMetrics readExpectedMetrics(const mbgl::filesystem::path& path) {

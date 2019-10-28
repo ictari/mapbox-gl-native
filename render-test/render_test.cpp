@@ -43,21 +43,20 @@ int runRenderTests(int argc, char** argv) {
     mbgl::optional<Manifest> manifestData;
     bool shuffle;
     uint32_t seed;
-    std::string manifestPath;
 
-    std::tie(recycleMap, shuffle, seed, manifestPath, manifestData) = parseArguments(argc, argv);
-    assert(manifestData);
+    std::tie(recycleMap, shuffle, seed, manifestData) = parseArguments(argc, argv);
 
+    TestRunner runner(std::move(manifestData));
     if (shuffle) {
         printf(ANSI_COLOR_YELLOW "Shuffle seed: %d" ANSI_COLOR_RESET "\n", seed);
+        runner.doShuffle(seed);
     }
-    const auto& manifest = manifestData.value();
-    const auto& ignores = manifest.getIgnores();
-    const auto& testPaths = manifest.getTestPaths();
 
     mbgl::util::RunLoop runLoop;
-    TestRunner runner(manifest);
 
+    const auto& manifest = runner.getManifest();
+    const auto& ignores = manifest.getIgnores();
+    const auto& testPaths = manifest.getTestPaths();
     std::vector<TestMetadata> metadatas;
     metadatas.reserve(testPaths.size());
 
@@ -134,7 +133,7 @@ int runRenderTests(int argc, char** argv) {
 
         metadatas.push_back(std::move(metadata));
     }
-    const auto& testRootPath = manifestPath;
+    const auto& testRootPath = manifest.getManifestPath();
     std::string resultsHTML = createResultPage(stats, metadatas, shuffle, seed);
     mbgl::util::write_file(testRootPath + "/index.html", resultsHTML);
 

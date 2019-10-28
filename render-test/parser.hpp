@@ -15,7 +15,7 @@ class Manifest;
 using ErrorMessage = std::string;
 using JSONReply = mbgl::variant<mbgl::JSDocument, ErrorMessage>;
 
-using ArgumentsTuple = std::tuple<bool, bool, uint32_t, std::string, mbgl::optional<Manifest>>;
+using ArgumentsTuple = std::tuple<bool, bool, uint32_t, mbgl::optional<Manifest>>;
 
 JSONReply readJson(const mbgl::filesystem::path&);
 std::string serializeJsonValue(const mbgl::JSValue&);
