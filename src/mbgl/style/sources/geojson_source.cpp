@@ -7,6 +7,7 @@
 #include <mbgl/style/sources/geojson_source_impl.hpp>
 #include <mbgl/tile/tile.hpp>
 #include <mbgl/util/logging.hpp>
+#include <mbgl/util/thread_pool.hpp>
 
 namespace mbgl {
 namespace style {
@@ -27,12 +28,14 @@ void GeoJSONSource::setURL(const std::string& url_) {
     if (loaded || req) {
         loaded = false;
         req.reset();
+        backgroundParser.reset();
         observer->onSourceDescriptionChanged(*this);
     }
 }
 
 void GeoJSONSource::setGeoJSON(const mapbox::geojson::geojson& geoJSON) {
     req.reset();
+    backgroundParser.reset();
     baseImpl = makeMutable<Impl>(impl(), geoJSON);
     observer->onSourceChanged(*this);
 }
@@ -51,7 +54,13 @@ void GeoJSONSource::loadDescription(FileSource& fileSource) {
         return;
     }
 
-    req = fileSource.request(Resource::source(*url), [this](Response res) {
+    auto onResult = [this](Immutable<Source::Impl> result) {
+        baseImpl = std::move(result);
+        loaded = true;
+        observer->onSourceLoaded(*this);
+    };
+
+    req = fileSource.request(Resource::source(*url), [this, onResult](Response res) {
         if (res.error) {
             observer->onSourceError(
                 *this, std::make_exception_ptr(std::runtime_error(res.error->message)));
@@ -61,20 +70,22 @@ void GeoJSONSource::loadDescription(FileSource& fileSource) {
             observer->onSourceError(
                 *this, std::make_exception_ptr(std::runtime_error("unexpectedly empty GeoJSON")));
         } else {
-            conversion::Error error;
-            optional<GeoJSON> geoJSON = conversion::convertJSON<GeoJSON>(*res.data, error);
-            if (!geoJSON) {
-                Log::Error(Event::ParseStyle, "Failed to parse GeoJSON data: %s",
-                           error.message.c_str());
-                // Create an empty GeoJSON VT object to make sure we're not infinitely waiting for
-                // tiles to load.
-                baseImpl = makeMutable<Impl>(impl(), GeoJSON{ FeatureCollection{} });
-            } else {
-                baseImpl = makeMutable<Impl>(impl(), *geoJSON);
-            }
+            auto makeImpl = [currentImpl = baseImpl, data = res.data]() -> Immutable<Source::Impl> {
+                assert(data);
+                auto& impl = static_cast<const Impl&>(*currentImpl);
+                conversion::Error error;
+                optional<GeoJSON> geoJSON = conversion::convertJSON<GeoJSON>(*data, error);
+                if (!geoJSON) {
+                    Log::Error(Event::ParseStyle, "Failed to parse GeoJSON data: %s", error.message.c_str());
+                    // Create an empty GeoJSON VT object to make sure we're not infinitely waiting for
+                    // tiles to load.
+                    return makeMutable<Impl>(impl, GeoJSON{FeatureCollection{}});
+                }
+                return makeMutable<Impl>(impl, *geoJSON);
+            };
 
-            loaded = true;
-            observer->onSourceLoaded(*this);
+            backgroundParser = std::make_unique<SequencedScheduler>();
+            backgroundParser->scheduleAndReply(makeImpl, onResult);
         }
     });
 }
