@@ -50,6 +50,30 @@ public:
     // first invoked, the call is ignored.
     std::function<void()> bindOnce(std::function<void()>);
 
+    // Enqueues the given |task| for execution into this scheduler's task queue and
+    // then enqueues the |reply| with the captured task result to the |replyScheduler|
+    // task queue.
+    //
+    // The |Function| return type must be compatible with the |Reply| argument type.
+    // Note: the task result is copied and passed by value.
+    template <typename Function, typename Reply>
+    void scheduleAndReply(const Function& task, const Reply& reply, mapbox::base::WeakPtr<Scheduler> replyScheduler) {
+        auto scheduled = [replyScheduler, task, reply] {
+            auto lock = replyScheduler.lock();
+            if (!replyScheduler) return;
+            auto scheduledReply = [reply, result = task()] { reply(result); };
+            replyScheduler->schedule(std::move(scheduledReply));
+        };
+
+        schedule(std::move(scheduled));
+    }
+
+    template <typename Function, typename Reply>
+    void scheduleAndReply(const Function& task, const Reply& reply) {
+        assert(GetCurrent());
+        scheduleAndReply(task, reply, GetCurrent()->makeWeakPtr());
+    }
+
     // Set/Get the current Scheduler for this thread
     static Scheduler* GetCurrent();
     static void SetCurrent(Scheduler*);
