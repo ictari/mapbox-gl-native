@@ -4,7 +4,10 @@ workflows:
   version: 2
   mbgl-next:
     jobs:
-      - next-sanity-checks
+      - next-android-armeabi-v7a-render-test
+      - next-sanity-checks:
+          requires: 
+            - next-android-armeabi-v7a-render-test
       - next-build-template:
           name: next-android-armeabi-v7a-release
           executor_name: ubuntu-disco
@@ -240,6 +243,19 @@ commands:
           name: Configure
           command: |
             cmake next -B build << parameters.config_params >>
+  next-gradle:
+    steps:
+      - run:
+          name: GradleBuild
+          commond: |
+            cd render-test/android && ./gradlew --parallel --max-workers=$(JOBS) -Pmapbox.abis=armeabi-v7 assembleRelease 
+      - run:
+          name: Run gcloud tests on Firebase
+          no_output_timeout: 20m
+          command: |
+            if [[ -n "${GCLOUD_SERVICE_ACCOUNT_JSON}" && -z "${SKIP_FIREBASE:-}" ]]; then
+              gcloud firebase test android models list
+            fi
   next-build:
     parameters:
       build_params:
@@ -650,6 +666,23 @@ commands:
           fi
 
 jobs:
+  next-android-armeabi-v7a-render-test:
+    executor: ubuntu-disco
+    steps:
+      - checkout
+      - next-prepare
+      - run:
+          name: GradleBuild
+          commond: |
+            cd render-test/android && ./gradlew --parallel --max-workers=8 -Pmapbox.abis=armeabi-v7 assembleRelease 
+      - run:
+          name: Run gcloud tests on Firebase
+          no_output_timeout: 20m
+          command: |
+            if [[ -n "${GCLOUD_SERVICE_ACCOUNT_JSON}" && -z "${SKIP_FIREBASE:-}" ]]; then
+              gcloud firebase test android models list
+            fi
+      - next-save    
   next-sanity-checks:
     executor: ubuntu-disco
     steps:
@@ -706,6 +739,9 @@ jobs:
       target_is_macos:
         type: boolean
         default: false
+      gradle_params:
+        type: string
+        default: ''
     executor: << parameters.executor_name >>
     steps:
       - checkout
@@ -717,6 +753,7 @@ jobs:
                 config_params: << parameters.config_params >>
             - next-build:
                 build_params: << parameters.build_params >>
+                
       - when:
           condition: << parameters.target_is_linux >>
           steps:
