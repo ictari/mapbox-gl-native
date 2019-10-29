@@ -2,7 +2,6 @@
 
 #include <mbgl/gfx/headless_frontend.hpp>
 #include <mbgl/map/map.hpp>
-#include <mbgl/util/optional.hpp>
 
 #include "manifest_parser.hpp"
 
@@ -14,7 +13,7 @@ struct TestMetadata;
 
 class TestRunner {
 public:
-    explicit TestRunner(mbgl::optional<Manifest> manifest_);
+    explicit TestRunner(Manifest manifest_);
     bool run(TestMetadata&);
     void reset();
 

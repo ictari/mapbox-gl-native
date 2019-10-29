@@ -40,7 +40,7 @@ namespace mbgl {
 
 int runRenderTests(int argc, char** argv) {
     bool recycleMap;
-    mbgl::optional<Manifest> manifestData;
+    Manifest manifestData;
     bool shuffle;
     uint32_t seed;
 

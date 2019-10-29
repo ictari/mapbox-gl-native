@@ -22,8 +22,8 @@ std::string prependFileScheme(const std::string& url) {
 }
 } // namespace
 
-Manifest::Manifest() : manifestPath(), testRootPath(), vendorPath(), assetPath(), ignores(), testPaths() {}
-Manifest::~Manifest() {}
+Manifest::Manifest() = default;
+Manifest::~Manifest() = default;
 
 const std::vector<TestPaths>& Manifest::getTestPaths() const {
     return testPaths;
@@ -48,9 +48,8 @@ std::string Manifest::localizeURL(const std::string& url) const {
     static const std::regex regex{"local://"};
     if (auto vendorPath = getVendorPath(url, regex)) {
         return *vendorPath;
-    } else {
-        return getIntegrationPath(url, "", regex).value_or(url);
     }
+    return getIntegrationPath(url, "", regex).value_or(url);
 }
 
 void Manifest::localizeSourceURLs(mbgl::JSValue& root, mbgl::JSDocument& document) const {
@@ -134,18 +133,16 @@ mbgl::optional<std::string> Manifest::localizeLocalURL(const std::string& url, b
     static const std::regex regex{"local://"};
     if (auto vendorPath = getVendorPath(url, regex, glyphsPath)) {
         return vendorPath;
-    } else {
-        return getIntegrationPath(url, "", regex, glyphsPath);
     }
+    return getIntegrationPath(url, "", regex, glyphsPath);
 }
 
 mbgl::optional<std::string> Manifest::localizeHttpURL(const std::string& url) const {
     static const std::regex regex{"http://localhost:2900"};
     if (auto vendorPath = getVendorPath(url, regex)) {
         return vendorPath;
-    } else {
-        return getIntegrationPath(url, "", regex);
     }
+    return getIntegrationPath(url, "", regex);
 }
 
 mbgl::optional<std::string> Manifest::localizeMapboxSpriteURL(const std::string& url) const {
@@ -162,9 +159,8 @@ mbgl::optional<std::string> Manifest::localizeMapboxTilesURL(const std::string& 
     static const std::regex regex{"mapbox://"};
     if (auto vendorPath = getVendorPath(url, regex)) {
         return vendorPath;
-    } else {
-        return getIntegrationPath(url, "tiles/", regex);
     }
+    return getIntegrationPath(url, "tiles/", regex);
 }
 
 mbgl::optional<std::string> Manifest::localizeMapboxTilesetURL(const std::string& url) const {
@@ -184,7 +180,7 @@ mbgl::optional<std::string> Manifest::getVendorPath(const std::string& url,
         return removeURLArguments(file.string());
     }
 
-    return {};
+    return mbgl::nullopt;
 }
 
 mbgl::optional<std::string> Manifest::getIntegrationPath(const std::string& url,
@@ -200,7 +196,7 @@ mbgl::optional<std::string> Manifest::getIntegrationPath(const std::string& url,
         return removeURLArguments(file.string());
     }
 
-    return {};
+    return mbgl::nullopt;
 }
 
 namespace {
@@ -254,14 +250,14 @@ mbgl::filesystem::path getValidPath(const std::string& manifestPath, const std::
 mbgl::optional<Manifest> ManifestParser::parseManifest(const std::string& manifestPath,
                                                        const std::vector<std::string>& testNames,
                                                        const std::string& testFilter) {
-    static Manifest manifest;
+    Manifest manifest;
     const auto filePath = mbgl::filesystem::path(manifestPath);
     manifest.manifestPath = manifestPath.substr(0, manifestPath.find(filePath.filename()));
 
     auto contents = readJson(filePath);
     if (!contents.is<mbgl::JSDocument>()) {
         mbgl::Log::Error(mbgl::Event::General, "Provided manifest file: %s is not a valid json", filePath.c_str());
-        return {};
+        return mbgl::nullopt;
     }
 
     auto document = std::move(contents.get<mbgl::JSDocument>());
@@ -270,21 +266,24 @@ mbgl::optional<Manifest> ManifestParser::parseManifest(const std::string& manife
         if (!assetPathValue.IsString()) {
             mbgl::Log::Warning(
                 mbgl::Event::General, "Invalid assetPath is provoided inside the manifest file: %s", filePath.c_str());
-            return {};
+            return mbgl::nullopt;
         }
-
         manifest.assetPath = (getValidPath(manifest.manifestPath, assetPathValue.GetString()) / "").string();
+        if (manifest.assetPath.empty()) {
+            return mbgl::nullopt;
+        }
     }
     if (document.HasMember("vendor_path")) {
         const auto& vendorPathValue = document["vendor_path"];
         if (!vendorPathValue.IsString()) {
             mbgl::Log::Warning(
                 mbgl::Event::General, "Invalid vendorPath is provoided inside the manifest file: %s", filePath.c_str());
-            return {};
+            return mbgl::nullopt;
         }
-        auto path = std::string(vendorPathValue.GetString());
-
         manifest.vendorPath = (getValidPath(manifest.manifestPath, vendorPathValue.GetString()) / "").string();
+        if (manifest.vendorPath.empty()) {
+            return mbgl::nullopt;
+        }
     }
     mbgl::filesystem::path baseTestPath;
     if (document.HasMember("base_test_path")) {
@@ -292,36 +291,47 @@ mbgl::optional<Manifest> ManifestParser::parseManifest(const std::string& manife
         if (!testPathValue.IsString()) {
             mbgl::Log::Warning(
                 mbgl::Event::General, "Invalid testPath is provoided inside the manifest file: %s", filePath.c_str());
-            return {};
+            return mbgl::nullopt;
         }
         baseTestPath = getValidPath(manifest.manifestPath, testPathValue.GetString());
+        if (baseTestPath.empty()) {
+            return mbgl::nullopt;
+        }
     }
     mbgl::filesystem::path probeTestPath;
+    bool enbaleProbeTest{false};
     if (document.HasMember("probe_test_path")) {
         const auto& testPathValue = document["probe_test_path"];
         if (!testPathValue.IsString()) {
             mbgl::Log::Warning(
                 mbgl::Event::General, "Invalid testPath is provoided inside the manifest file: %s", filePath.c_str());
-            return {};
+            return mbgl::nullopt;
         }
         probeTestPath = getValidPath(manifest.manifestPath, testPathValue.GetString());
+        if (probeTestPath.empty()) {
+            return mbgl::nullopt;
+        }
+        enbaleProbeTest = true;
     }
     std::vector<mbgl::filesystem::path> expectationPaths{};
     if (document.HasMember("expectation_paths")) {
         const auto& expectationPathValue = document["expectation_paths"];
         if (!expectationPathValue.IsArray()) {
             mbgl::Log::Warning(mbgl::Event::General,
-                               "Invalid expectationPath is provoided inside the manifest file: %s",
+                               "Provided expectation_paths inside the manifest file: %s is not a valid array",
                                filePath.c_str());
-            return {};
+            return mbgl::nullopt;
         }
         for (const auto& value : expectationPathValue.GetArray()) {
             if (!value.IsString()) {
-                return {};
+                mbgl::Log::Warning(mbgl::Event::General,
+                                   "Invalid expectation path item is provoided inside the manifest file: %s",
+                                   filePath.c_str());
+                return mbgl::nullopt;
             }
             expectationPaths.emplace_back(getValidPath(manifest.manifestPath, value.GetString()));
             if (expectationPaths.back().empty()) {
-                return {};
+                return mbgl::nullopt;
             }
         }
     }
@@ -329,38 +339,43 @@ mbgl::optional<Manifest> ManifestParser::parseManifest(const std::string& manife
     if (document.HasMember("ignore_paths")) {
         const auto& ignorePathValue = document["ignore_paths"];
         if (!ignorePathValue.IsArray()) {
-            mbgl::Log::Warning(
-                mbgl::Event::General, "Invalid ignorePath is provoided inside the manifest file: %s", filePath.c_str());
-            return {};
+            mbgl::Log::Warning(mbgl::Event::General,
+                               "Provided ignore_paths inside the manifest file: %s is not a valid array",
+                               filePath.c_str());
+            return mbgl::nullopt;
         }
         for (const auto& value : ignorePathValue.GetArray()) {
             if (!value.IsString()) {
-                return {};
+                mbgl::Log::Warning(mbgl::Event::General,
+                                   "Invalid ignore path item is provoided inside the manifest file: %s",
+                                   filePath.c_str());
+                return mbgl::nullopt;
             }
             ignorePaths.emplace_back(getValidPath(manifest.manifestPath, value.GetString()));
             if (ignorePaths.back().empty()) {
-                return {};
+                return mbgl::nullopt;
             }
         }
         manifest.ignores = parseIgnores(ignorePaths);
     }
 
-    bool enbaleProbeTest{false};
-    std::vector<mbgl::filesystem::path> paths;
-    // Seperate Probe tests and normal tests, since they have different testRoot
-    if (std::find(testNames.begin(), testNames.end(), "tests") != testNames.end()) {
-        paths.emplace_back(probeTestPath / "tests");
-        enbaleProbeTest = true;
-    } else {
-        for (const auto& id : testNames) {
-            paths.emplace_back(baseTestPath / id);
-        }
-        if (paths.empty()) {
-            paths.emplace_back(baseTestPath);
-        }
+    manifest.testRootPath = enbaleProbeTest ? probeTestPath.string() : baseTestPath.string();
+    if (manifest.testRootPath.back() == '/') {
+        manifest.testRootPath.pop_back();
+    }
+    if (manifest.manifestPath.back() == '/') {
+        manifest.manifestPath.pop_back();
     }
 
-    // Recursively traverse through the test paths and collect test dirπectories containing "style.son".
+    std::vector<mbgl::filesystem::path> paths;
+    for (const auto& id : testNames) {
+        paths.emplace_back(manifest.testRootPath + "/" + id);
+    }
+    if (paths.empty()) {
+        paths.emplace_back(manifest.testRootPath);
+    }
+
+    // Recursively traverse through the test paths and collect test directories containing "style.json".
     auto& testPaths = manifest.testPaths;
     testPaths.reserve(paths.size());
     for (const auto& path : paths) {
@@ -381,12 +396,5 @@ mbgl::optional<Manifest> ManifestParser::parseManifest(const std::string& manife
         }
     }
 
-    manifest.testRootPath = enbaleProbeTest ? probeTestPath.string() : baseTestPath.string();
-    if (manifest.testRootPath.back() == '/') {
-        manifest.testRootPath.pop_back();
-    }
-    if (manifest.manifestPath.back() == '/') {
-        manifest.manifestPath.pop_back();
-    }
     return mbgl::optional<Manifest>(manifest);
 }

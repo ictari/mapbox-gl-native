@@ -1,8 +1,8 @@
 #pragma once
 
 #include "metadata.hpp"
+#include "manifest_parser.hpp"
 
-#include <mbgl/util/optional.hpp>
 #include <mbgl/util/rapidjson.hpp>
 #include <mbgl/util/variant.hpp>
 
@@ -10,12 +10,10 @@
 #include <tuple>
 #include <vector>
 
-class Manifest;
-
 using ErrorMessage = std::string;
 using JSONReply = mbgl::variant<mbgl::JSDocument, ErrorMessage>;
 
-using ArgumentsTuple = std::tuple<bool, bool, uint32_t, mbgl::optional<Manifest>>;
+using ArgumentsTuple = std::tuple<bool, bool, uint32_t, Manifest>;
 
 JSONReply readJson(const mbgl::filesystem::path&);
 std::string serializeJsonValue(const mbgl::JSValue&);

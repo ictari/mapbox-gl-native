@@ -19,7 +19,6 @@
 #include <boost/archive/iterators/ostream_iterator.hpp>
 
 #include "filesystem.hpp"
-#include "manifest_parser.hpp"
 #include "metadata.hpp"
 #include "parser.hpp"
 #include "runner.hpp"
@@ -305,7 +304,7 @@ ArgumentsTuple parseArguments(int argc, char** argv) {
     mbgl::filesystem::path manifestPath{testPathValue ? args::get(testPathValue) : std::string{TEST_RUNNER_ROOT_PATH}};
     if (!mbgl::filesystem::exists(manifestPath) || !manifestPath.has_filename()) {
         mbgl::Log::Error(mbgl::Event::General,
-                         "Provided test manifest file path '%s' does not exist.",
+                         "Provided test manifest file path '%s' does not exist",
                          manifestPath.string().c_str());
         exit(4);
     }
@@ -318,7 +317,7 @@ ArgumentsTuple parseArguments(int argc, char** argv) {
     if (!manifestData) {
         exit(5);
     }
-    return ArgumentsTuple{recycleMapFlag ? args::get(recycleMapFlag) : false, shuffle, seed, std::move(manifestData)};
+    return ArgumentsTuple{recycleMapFlag ? args::get(recycleMapFlag) : false, shuffle, seed, std::move(*manifestData)};
 }
 
 TestMetrics readExpectedMetrics(const mbgl::filesystem::path& path) {
@@ -566,7 +565,8 @@ std::string encodeBase64(const std::string& data) {
 }
 
 std::string createResultItem(const TestMetadata& metadata, bool hasFailedTests) {
-    const bool shouldHide = (hasFailedTests && metadata.status == "passed") || (metadata.status.find("ignored") != std::string::npos);
+    const bool shouldHide =
+        (hasFailedTests && metadata.status == "passed") || (metadata.status.find("ignored") != std::string::npos);
 
     std::string html;
     html.append("<div class=\"test " + metadata.status + (shouldHide ? " hide" : "") + "\">\n");

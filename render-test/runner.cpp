@@ -101,7 +101,7 @@ std::string simpleDiff(const Value& result, const Value& expected) {
     return diff.str();
 }
 
-TestRunner::TestRunner(mbgl::optional<Manifest> manifest_) : maps{}, manifest(std::move(*manifest_)) {}
+TestRunner::TestRunner(Manifest manifest_) : maps{}, manifest(std::move(manifest_)) {}
 
 const Manifest& TestRunner::getManifest() const {
     return manifest;
